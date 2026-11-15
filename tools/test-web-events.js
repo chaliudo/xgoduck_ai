@@ -20,15 +20,12 @@ for(const file of ['panel-language.js','app.js'])
   vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../assets',file),'utf8'), context);
 (async () => {
   assert.equal(element('cockpit-link').href, 'http://192.0.2.10/');
-  const language=element('language');
-  assert.equal(language.textContent,'中文');
-  language.onclick();
+  // The panel is Chinese only; no language button exists any more.
   assert.equal(context.document.documentElement.lang,'zh-CN');
   assert.equal(element('head-label-0').textContent,'头部');
-  win.keydown({code:'Space',target:language,preventDefault(){assert.fail('language button should receive Space');}});
+  assert.equal(nodes.has('language'), false);
+  // Loading the page must not send a command.
   assert.deepEqual(requests,[]);
-  language.onclick();
-  assert.equal(element('head-label-0').textContent,'Head');
   context.document.hidden = true;
   doc.visibilitychange();
   await new Promise(resolve => setImmediate(resolve));
@@ -41,5 +38,5 @@ for(const file of ['panel-language.js','app.js'])
   element('stop').onclick();
   await new Promise(resolve => setImmediate(resolve));
   assert.ok(requests.some(r => r.path === '/api/mode' && r.body.mode === 'off'));
-  console.log('PASS: language switch sends no command; hide/close zero motion; Torque off still works.');
+  console.log('PASS: panels render Chinese only; hiding the page or closing it sends no motion; Torque off still works.');
 })().catch(e => {console.error(e); process.exitCode=1;});

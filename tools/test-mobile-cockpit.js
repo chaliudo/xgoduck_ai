@@ -124,17 +124,15 @@ const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     assert.equal(await page.locator('.tof-cell.is-valid').count(),63);
     assert.equal(await page.locator('#tofNearest').innerText(),'12.0');
     assert.equal(await page.locator('#welcome').isHidden(),true);
-    await page.locator('#language').click();
-    assert.equal(await page.locator('#startCamera').innerText(),'Start camera');
-    assert.equal(await page.locator('#batteryVoltage').getAttribute('aria-label'),'Low voltage 7.3 V');
+    assert.equal(await page.locator('#language').count(),0,'The cockpit has no language switch.');
+    assert.match(await page.locator('#batteryVoltage').getAttribute('aria-label'),/7\.3/);
     await page.reload();await page.getByRole('button',{name:'开启摄像头',exact:true}).waitFor();
-    assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN','Reload follows the system language rather than a previous manual toggle.');
-    await page.locator('#language').click();await page.getByRole('button',{name:'Start camera',exact:true}).waitFor();
-    await page.locator('#settings').click();await page.getByRole('heading',{name:'Speaker',exact:true}).waitFor();
+    assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN','The cockpit stays Chinese after a reload.');
+    await page.locator('#settings').click();await page.getByRole('heading',{name:'扬声器',exact:true}).waitFor();
     assert.equal(await page.getByText('Phone microphone',{exact:true}).count(),0);
     await page.locator('#closeConfig').click();assert.equal(writes.length,0);
 
-    assert.equal(await page.locator('#speakerVolume b').innerText(),'Volume');
+    assert.equal(await page.locator('#speakerVolume b').innerText(),'音量');
     assert.equal(await page.locator('#speakerVolumeValue').innerText(),'100%');
     await page.locator('#speakerVolume').click();
     const slider=page.locator('#volume');
@@ -199,11 +197,10 @@ const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     await page.locator('#usbHost').click();
     await page.locator('#usbHost[aria-checked="true"]:enabled').waitFor();
     await page.locator('#closeConfig').click();
-    assert.equal(await page.locator('#usbHostQuick').innerText(),'USB Host: On');
+    assert.equal(await page.locator('#usbHostQuick').innerText(),'USB Host：已开启');
     assert.deepEqual(writes.at(-1),{path:'/api/gamepad/usb',body:{host:true}});
 
-    await page.locator('#listen').click();await page.getByRole('button',{name:/Stop listening/}).waitFor();
-    await page.locator('#language').click();await page.getByRole('button',{name:/停止监听/}).waitFor();
+    await page.locator('#listen').click();await page.getByRole('button',{name:/停止监听/}).waitFor();
     await page.locator('#listen').click();
     await page.waitForFunction(()=>window.__liveClosed===1);
     assert.equal(await page.evaluate(()=>window.__phoneMicCalls),0);
@@ -212,7 +209,6 @@ const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
 
     await page.locator('#full').click();await page.waitForFunction(()=>!!document.fullscreenElement);
     assert.equal(await page.locator('#fullLabel').innerText(),'退出全屏');
-    await page.locator('#language').click();assert.equal(await page.locator('#fullLabel').innerText(),'Exit fullscreen');
     await page.locator('#full').click();await page.waitForFunction(()=>!document.fullscreenElement);
 
     // Stale/absent/missing-RPC/network data must never look like a live zero.
@@ -295,11 +291,10 @@ const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     await page.locator('#moveStick[aria-disabled=true]').waitFor();
 
     if(output)fs.mkdirSync(output,{recursive:true});
-    for(const language of ['zh','en']){
-      await page.evaluate(language=>window.DuckI18n.setLanguage(language),language);
+    for(const language of ['zh']){
       for(const [name,width,height] of [['portrait',390,844],['compact',320,568],['landscape',844,390],['small-landscape',667,375],['desktop',1280,800]]){
         await page.setViewportSize({width,height});await page.waitForTimeout(100);
-        const boxes=await page.evaluate(()=>['startCamera','stopCamera','lightOn','lightOff','snapshot','clean','language','listen','speakerTest','speakerVolume','torqueOff','batteryVoltage','controlPageLink','usbHostQuick','moveStick','turnStick','motionStatus','openWalkingHelp'].map(id=>({id,...document.getElementById(id).getBoundingClientRect().toJSON()})));
+        const boxes=await page.evaluate(()=>['startCamera','stopCamera','lightOn','lightOff','snapshot','clean','listen','speakerTest','speakerVolume','torqueOff','batteryVoltage','controlPageLink','usbHostQuick','moveStick','turnStick','motionStatus','openWalkingHelp'].map(id=>({id,...document.getElementById(id).getBoundingClientRect().toJSON()})));
         for(const box of boxes)assert(box.x>=0&&box.y>=0&&box.right<=width+1&&box.bottom<=height+1,`${language}/${name}: ${box.id} off screen`);
         const badge=await versionBadge.boundingBox();
         assert(badge&&badge.x>=0&&badge.y>=0&&badge.x+badge.width<=width+1&&badge.y+badge.height<=height+1,
@@ -433,8 +428,6 @@ const pixel=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR
     assert.equal(writes.filter(call=>call.path==='/api/mode').length,modeWrites,'Space on walking help must not unload the servos.');
     assert.deepEqual(await disclosure.locator('a').evaluateAll(links=>links.map(link=>link.getAttribute('href'))),
       ['/calibrate.html','/servo.html']);
-    await control.locator('#language').click();
-    assert.equal(await summary.innerText(),'Unsteady walking?');
     await control.close();
 
     const binding=await browser.newPage({locale:'zh-CN',viewport:{width:1200,height:800}});

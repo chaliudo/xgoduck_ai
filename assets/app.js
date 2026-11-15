@@ -402,7 +402,7 @@ for(const [id,action]of [['imu-calibrate','start'],['imu-reset','reset']])$(id).
 };
 function keyCommand(){updateMotion();sendCommand();}
 $('walking-help')?.addEventListener('toggle',e=>{if(e.currentTarget.open&&(keys.size||motion.some(Boolean)))zero();});
-window.addEventListener('keydown',e=>{if(e.target.closest?.('#walking-help'))return;if(e.code==='Space'){if(e.target===$('language'))return;e.preventDefault();$('stop').click();return;}const k=e.key.toLowerCase();if('wasdqe'.includes(k)&&k.length===1){keys.add(k);keyCommand();}});
+window.addEventListener('keydown',e=>{if(e.target.closest?.('#walking-help'))return;if(e.code==='Space'){e.preventDefault();$('stop').click();return;}const k=e.key.toLowerCase();if('wasdqe'.includes(k)&&k.length===1){keys.add(k);keyCommand();}});
 window.addEventListener('keyup',e=>{const k=e.key.toLowerCase();if(keys.delete(k))keyCommand();});
 window.addEventListener('blur',()=>zero());
 document.addEventListener('visibilitychange',()=>{if(document.hidden)zero();});

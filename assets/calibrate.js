@@ -125,13 +125,12 @@ const strings={
     sessionChanged:'标定已关闭或切换，请重新进入后再设置中位。'
   }
 };
-// Same rule as the cockpit: Chinese browsers get Chinese, everything else English; the toggle only lasts for this page.
-const systemLanguage=()=>/^zh(?:[-_]|$)/i.test(navigator.languages?.[0]||navigator.language||'en')?'zh':'en';
-let language=systemLanguage();
-const t=(key,values={})=>String(strings[language][key]??strings.en[key]??key).replace(/\{(\w+)\}/g,(_,name)=>String(values[name]??''));
-const list=key=>strings[language][key]||strings.en[key]||[];
-const pick=value=>value?.[language]||value?.en||'';
-const label=key=>[h('span',{text:t(key)}),strings[language].gloss?.[key]&&h('small',{text:strings[language].gloss[key]})];
+// Chinese-only page: the zh dictionary is the single source of user-visible text.
+const language='zh';
+const t=(key,values={})=>String(strings.zh[key]??key).replace(/\{(\w+)\}/g,(_,name)=>String(values[name]??''));
+const list=key=>strings.zh[key]||[];
+const pick=value=>value?.zh||'';
+const label=key=>[h('span',{text:t(key)}),strings.zh.gloss?.[key]&&h('small',{text:strings.zh.gloss[key]})];
 
 function h(tag,attrs,...kids){
   const el=document.createElement(tag);
@@ -340,8 +339,6 @@ function renderAll(){
   $('imu-picture').setAttribute('aria-label', t('imuZoom'));
   $('picture-close').textContent=t('pictureClose');
   $('picture-dialog').setAttribute('aria-label',t('pictureOpen'));
-  const button=$('language');
-  button.textContent=t('languageButton');button.title=t('switchLanguage');button.setAttribute('aria-label',t('switchLanguage'));
   renderIntro();renderBar();renderZones();renderFinish();
   built=true;
   renderMessage();renderRaw();refreshRows();
@@ -428,10 +425,8 @@ document.addEventListener('click',event=>{
 });
 $('exit').onclick=exit;
 $('imu-start').onclick=startImu;
-$('language').onclick=()=>{language=language==='zh'?'en':'zh';renderAll();};
 $('picture-close').onclick=()=>{$('picture-dialog').close();};
 $('picture-dialog').onclick=event=>{if(event.target===$('picture-dialog'))$('picture-dialog').close();};
-window.addEventListener('languagechange',()=>{language=systemLanguage();renderAll();});
 window.addEventListener('pagehide',()=>navigator.sendBeacon('/api/cal/exit',new Blob(['{}'],{type:'application/json'})));
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&(active||sessionBusy))exit();});
 

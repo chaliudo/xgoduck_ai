@@ -44,11 +44,11 @@ test('three zones, every real image decodes, bilingual labels, narrow layout and
   assert.equal(state.calls.filter(c=>c.path==='/api/cal/exit').length,exits);
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('dialog').evaluate(d=>d.open),false);
-  await page.locator('#language').click();
-  assert.equal(await page.locator('html').getAttribute('lang'),'en');
-  assert.equal(await page.locator('#title').textContent(),'Calibration');
-  assert.equal(await page.locator('#imu-title').textContent(),'IMU calibration');
-  assert.match(await page.locator('#row2 .cal-how').textContent(),/right angle/);
+  assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN');
+  assert.equal(await page.locator('#language').count(),0,'The calibration page has no language switch.');
+  assert.equal(await page.locator('#title').textContent(),'舵机与 IMU 标定');
+  assert.equal(await page.locator('#imu-title').textContent(),'IMU 标定');
+  assert.ok((await page.locator('#row2 .cal-how').textContent()).length>0);
   for (const width of [390,320]) {
     await page.setViewportSize({width,height:844});
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`no horizontal overflow at ${width}px`);

@@ -131,23 +131,16 @@
       tofRpcMissing:'当前固件未注册 ToF 读取接口。',tofReadFailed:'暂时无法读取 ToF，摄像头和音频可继续使用。',tofSensorError:'传感器离线或读取失败，请检查连接。',tofNotConnected:'未检测到 ToF，请检查 Qwiic 连接。',tofStaleHint:'未收到新帧，已隐藏旧的距离。',tofNoTarget:'无有效测距目标，请将物体放到传感器前方。',tofConnectionLost:'连接已中断，正在等待重连…',tofWaiting:'正在等待传感器的真实数据…'
     }
   };
-  const systemLanguage=()=>/^zh(?:[-_]|$)/i.test(navigator.languages?.[0]||navigator.language||'en')?'zh':'en';
-  let language=systemLanguage();
-  const t=(key,values={})=>(strings[language][key]||strings.en[key]||key).replace(/\{(\w+)\}/g,(_,name)=>String(values[name]??''));
+  // Chinese-only cockpit: the zh dictionary is the single source of user-visible text.
+  const language = 'zh';
+  const t=(key,values={})=>String(strings.zh[key]??key).replace(/\{(\w+)\}/g,(_,name)=>String(values[name]??''));
   function apply(){
-    document.documentElement.lang=language==='zh'?'zh-CN':'en';
+    document.documentElement.lang='zh-CN';
     document.title=t('pageTitle');
     document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));
     for(const attr of ['alt','title','aria-label'])document.querySelectorAll(`[data-i18n-${attr}]`).forEach(el=>el.setAttribute(attr,t(el.getAttribute('data-i18n-'+attr))));
-    const button=document.getElementById('language');
-    if(button){button.textContent=language==='zh'?'EN':'中文';button.setAttribute('aria-label',t('switchLanguage'));button.title=t('switchLanguage');}
   }
-  window.DuckI18n={t,get language(){return language;},setLanguage(next){
-    if(!['zh','en'].includes(next))return;
-    language=next;
-    apply();window.dispatchEvent(new CustomEvent('duck-languagechange'));
-  }};
-  document.getElementById('language')?.addEventListener('click',()=>window.DuckI18n.setLanguage(language==='zh'?'en':'zh'));
-  window.addEventListener('languagechange',()=>window.DuckI18n.setLanguage(systemLanguage()));
+  // setLanguage stays for callers and tests that expect the API, but the UI is Chinese only.
+  window.DuckI18n={t,get language(){return language;},setLanguage(){}};
   apply();
 })();

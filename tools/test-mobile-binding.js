@@ -39,23 +39,12 @@ function setup({locale='zh-CN',languages,savedLanguage,unconfigured=false}={}){
   return {elements,window,document,navigator,stored,requests,state,override:value=>override=value};
 }
 (async()=>{
-  for(const [locale,languages,savedLanguage,expected] of [
-    ['zh-CN',undefined,'en','zh'],['zh-TW',undefined,'en','zh'],['zh-HK',undefined,null,'zh'],
-    ['zh-Hans-CN',undefined,null,'zh'],['zh',undefined,null,'zh'],['zh_CN',undefined,null,'zh'],
-    ['en-US',undefined,'zh','en'],['fr-FR',undefined,'zh','en'],['ja-JP',undefined,null,'en'],
-    ['en-US',['zh-Hant-TW','en-US'],'en','zh'],['zh-CN',['en-US','zh-CN'],'zh','en'],
-    ['zh-CN',[],null,'zh'],['',[],null,'en']
-  ]){
-    const localeUI=setup({locale,languages,savedLanguage});await tick();
-    assert.equal(localeUI.window.DuckI18n.language,expected,`System language ${locale}/${languages} takes precedence over an old preference.`);
-    assert.equal(localeUI.document.documentElement.lang,expected==='zh'?'zh-CN':'en');
-    localeUI.window.DuckI18n.setLanguage(expected==='zh'?'en':'zh');
-    assert.equal(localeUI.stored.get('duck-cockpit-language'),savedLanguage||undefined,'Manual changes are temporary and must not persist.');
-    localeUI.navigator.languages=['zh-CN'];localeUI.window.dispatchEvent(new Event('languagechange'));
-    assert.equal(localeUI.window.DuckI18n.language,'zh');
-    localeUI.navigator.languages=['de-DE','zh-CN'];localeUI.window.dispatchEvent(new Event('languagechange'));
-    assert.equal(localeUI.window.DuckI18n.language,'en');
-    assert(localeUI.requests.every(r=>!r.options.method),'Following system language must not change the cloud region.');
+  // The cockpit is Chinese only: every browser locale must render the same text.
+  for (const locale of ['zh-CN', 'en-US', 'fr-FR', 'ja-JP', '']) {
+    const ui = setup({locale});await tick();
+    assert.equal(ui.window.DuckI18n.language, 'zh', `Locale ${locale} must still render Chinese.`);
+    assert.equal(ui.document.documentElement.lang, 'zh-CN');
+    assert(ui.requests.every(r => !r.options.method), 'Rendering in Chinese must not change the cloud region.');
   }
   const s=setup(),e=s.elements;
   assert(s.requests.every(r=>!r.options.method));await tick();assert.equal(e.bindingRegionChip.textContent,'国内');e.openBinding.click();await tick();
@@ -65,21 +54,17 @@ function setup({locale='zh-CN',languages,savedLanguage,unconfigured=false}={}){
   assert.match(e.openBinding.attributes['aria-label'],/^AI 语音交互绑定/);
   assert.match(e.startupWake.textContent,/说「小鸭小鸭」唤醒/);
   assert(e.regionCn.checked);assert(!e.regionCn.disabled);assert(s.requests.every(r=>!r.options.method));
-  s.window.DuckI18n.setLanguage('en');assert.equal(e.bindingRegion.textContent,'China');
-  assert.match(e.startupWake.textContent,/say “小鸭小鸭”/);
-  assert(s.requests.every(r=>!r.options.method),'UI language must not switch servers.');
+  assert(s.requests.every(r=>!r.options.method),'Rendering the dialog must not switch servers.');
   e.regionCn.change();assert(s.requests.every(r=>!r.options.method),'Selecting the current server must not reconnect.');
-  e.regionGlobal.change();assert.equal(e.bindingRegion.textContent,'China','The current region changes only after the server acknowledges the save.');
-  assert.match(e.startupWake.textContent,/say “小鸭小鸭”/);
+  e.regionGlobal.change();assert.equal(e.bindingRegion.textContent,'国内版','The current region changes only after the server acknowledges the save.');
+  assert.match(e.startupWake.textContent,/说「小鸭小鸭」唤醒/);
   assert.equal(s.requests.filter(r=>r.options.method==='POST').length,1,'Selection must immediately save the server.');
   assert(e.regionCn.disabled&&e.regionGlobal.disabled);e.regionGlobal.change();e.regionCn.change();await tick();
   const writes=s.requests.filter(r=>r.options.method==='POST');assert.equal(writes.length,1);
   assert.equal(writes[0].url,'/api/voice/region');assert.equal(writes[0].options.headers['X-Device-Test'],'1');
   assert.deepEqual(JSON.parse(writes[0].options.body),{cloud_region:'global'});
-  assert.equal(e.bindingRegion.textContent,'International');assert.notEqual(e.bindingStatus.dataset.state,'online','Old China connection must not be presented as the new server being online.');
-  assert.match(e.startupWake.textContent,/say “Hey Ducky”/);
-  s.window.DuckI18n.setLanguage('zh');assert.match(e.startupWake.textContent,/说「Hey Ducky」唤醒/);
-  s.window.DuckI18n.setLanguage('en');
+  assert.equal(e.bindingRegion.textContent,'国际版');assert.notEqual(e.bindingStatus.dataset.state,'online','Old China connection must not be presented as the new server being online.');
+  assert.match(e.startupWake.textContent,/说「Hey Ducky」唤醒/);
   s.state.voice={onboarding:{cloud_region:'global',bound:false},cloud_connected:false,session_cloud_region:null};
   s.window.dispatchEvent(new Event('focus'));await tick();assert.equal(e.bindingStatus.dataset.state,'unbound');
   s.state.voice={onboarding:{cloud_region:'global',bound:true},cloud_connected:true,session_cloud_region:'global'};
@@ -131,5 +116,5 @@ function setup({locale='zh-CN',languages,savedLanguage,unconfigured=false}={}){
   const html=fs.readFileSync(path.join(assets,'mobile.html'),'utf8');
   assert(!html.includes('id="applyRegion"'),'No extra Apply button is required.');
   for(const url of ['https://agent.xgorobot.com/devices','https://agent.luwudynamics.ai/'])assert(html.includes(`href="${url}" target="_blank" rel="noopener noreferrer"`));
-  console.log('PASS: system-language detection, camera-gated region dialog, manual binding, region saves, failure rollback and stale-response handling.');
+  console.log('PASS: Chinese-only cockpit regardless of locale, camera-gated region dialog, manual binding, region saves, failure rollback and stale-response handling.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

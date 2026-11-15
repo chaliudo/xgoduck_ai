@@ -15,7 +15,7 @@
 
 ## English
 
-Open `http://<board-ip>:9527/calibrate.html`. The page follows the browser language (Chinese or English), with a manual toggle.
+Open `http://<board-ip>:9527/calibrate.html`. The page is Chinese only; the earlier English toggle has been removed.
 
 Rest Duck securely on a table or in a calibration stand. Entering the page unloads all servos. Work through **Head & neck (30–34)**, **Left leg (10–14)** and **Right leg (20–24)**; left/right are from Duck’s perspective. Find the white ID tag in the real photo, position that joint to match its picture, then click **Set center** (formerly Set center & hold). Once **Center set** appears, move on to the next joint. This confirms calibration, not the servo’s torque state.
 

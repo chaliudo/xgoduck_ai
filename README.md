@@ -211,7 +211,7 @@ After the voice service sound, say the wake word shown under **Link AI → Autom
 
 ## Everyday use
 
-- **Interface language:** Opening or refreshing follows the accessing browser’s system language: Chinese for Chinese locales, English otherwise. The language button changes only the current page.
+- **Interface language:** The browser interface is Chinese only. English pages were translated and the language button was removed, so opening or refreshing no longer follows the browser's system language.
 - **Audio check:** Under Live audio, Test speaker plays about three seconds of synthesized duck calls; tap again to stop. Listen live plays Duck’s microphone on your phone/computer.
 - The cockpit shows two rows of actions and a row of seven duck calls. Tap a call to play it through Duck’s speaker. On a phone, rotate to landscape to use these controls.
 - On a computer, hold **W/S** to move forward or back, **A/D** to strafe and **Q/E** to turn. Release the keys or press **Space** to stop moving.

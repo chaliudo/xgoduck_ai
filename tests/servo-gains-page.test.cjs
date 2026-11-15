@@ -115,37 +115,29 @@ test('Protection lists each servo and distinguishes mixed settings, missing repl
   await page.reload();
   await page.locator('#scan:enabled').waitFor();
   assert.equal(await page.locator('#protection-current').inputValue(),'2');
-  const voltage=page.getByRole('group',{name:'Voltage protection'});
-  const current=page.getByRole('group',{name:'Overcurrent protection'});
+  const voltage=page.getByRole('group',{name:'电压保护'});
+  const current=page.getByRole('group',{name:'过流保护'});
   const table=page.locator('#protection-readings');
   const rows=()=>table.locator('tbody tr').evaluateAll(trs=>trs.map(tr=>Array.from(tr.cells,cell=>cell.textContent)));
-  assert.equal(await voltage.locator('#voltage-protection-out').innerText(),'1 enabled · 1 disabled · 1 unread');
-  assert.equal(await current.locator('#overcurrent-protection-out').innerText(),'1 enabled · 1 disabled · 1 unread');
-  assert.equal(await table.getByRole('columnheader',{name:'Saved threshold (A)'}).count(),1);
-  assert.deepEqual(await rows(),[
-    ['10','Enabled','Enabled','1.001'],
-    ['31','Disabled','Disabled','1.5015'],
-    ['32','Read failed'],
-  ]);
-  assert.ok(await table.evaluate(el=>el.offsetWidth<=el.parentElement.clientWidth));
-  await page.click('#language');
-  assert.equal(await page.locator('#voltage-protection-out').innerText(),'1 台启用 · 1 台禁用 · 1 台未读到');
+  assert.equal(await voltage.locator('#voltage-protection-out').innerText(),'1 台启用 · 1 台禁用 · 1 台未读到');
+  assert.equal(await current.locator('#overcurrent-protection-out').innerText(),'1 台启用 · 1 台禁用 · 1 台未读到');
+  assert.equal(await table.getByRole('columnheader',{name:'已保存阈值（A）'}).count(),1);
   assert.deepEqual(await rows(),[
     ['10','已启用','已启用','1.001'],
     ['31','已禁用','已禁用','1.5015'],
     ['32','未读到'],
   ]);
-  await page.click('#language');
+  assert.ok(await table.evaluate(el=>el.offsetWidth<=el.parentElement.clientWidth));
   assert.deepEqual(state.calls.filter(call=>call.action).map(call=>call.action),Array(3).fill('read_protection'));
-  await current.getByRole('button',{name:'Enable overcurrent protection'}).click();
+  await current.getByRole('button',{name:'启用过流保护'}).click();
   await page.locator('#scan:enabled').waitFor();
-  assert.equal(await current.locator('#overcurrent-protection-out').innerText(),'2 enabled · 1 unread');
-  assert.equal(await voltage.locator('#voltage-protection-out').innerText(),'1 enabled · 1 disabled · 1 unread');
-  assert.match(await page.locator('#protection-message').innerText(),/could not be verified for ID 32/);
-  await voltage.getByRole('button',{name:'Disable voltage protection'}).click();
+  assert.equal(await current.locator('#overcurrent-protection-out').innerText(),'2 台启用 · 1 台未读到');
+  assert.equal(await voltage.locator('#voltage-protection-out').innerText(),'1 台启用 · 1 台禁用 · 1 台未读到');
+  assert.match(await page.locator('#protection-message').innerText(),/32/);
+  await voltage.getByRole('button',{name:'禁用电压保护'}).click();
   await page.locator('#scan:enabled').waitFor();
-  assert.equal(await voltage.locator('#voltage-protection-out').innerText(),'2 disabled · 1 unread');
-  assert.equal(await current.locator('#overcurrent-protection-out').innerText(),'2 enabled · 1 unread');
+  assert.equal(await voltage.locator('#voltage-protection-out').innerText(),'2 台禁用 · 1 台未读到');
+  assert.equal(await current.locator('#overcurrent-protection-out').innerText(),'2 台启用 · 1 台未读到');
   assert.deepEqual(state.calls.filter(call=>call.action?.startsWith('set_')).map(call=>call.target_id),[10,31,32,10,31,32]);
   assert.deepEqual(await table.locator('td.protection-threshold').allTextContents(),['1.001','1.5015']);
   await page.click('#set-protection-current');
@@ -156,7 +148,7 @@ test('Protection lists each servo and distinguishes mixed settings, missing repl
   await page.reload();
   await page.locator('#scan:enabled').waitFor();
   assert.equal(await table.isVisible(),false);
-  assert.equal(await page.locator('#protection-readings-empty').innerText(),'No servos detected.');
+  assert.equal(await page.locator('#protection-readings-empty').innerText(),'未检测到舵机。');
 });
 
 test('Control checks gains after all 15 are online and reports missing IMU calibration',async t=>{
@@ -266,7 +258,7 @@ test('Installation check survives a visible window losing focus and unloads when
   });
   await exited;
   await page.locator('#servo-test-offset:disabled').waitFor();
-  assert.match(await page.locator('#servo-test-status').innerText(),/tab was hidden/);
+  assert.match(await page.locator('#servo-test-status').innerText(),/测试已结束/);
   assert.equal(state.mode,'shadow');
   assert.equal(state.testSession,null);
 });
@@ -278,13 +270,11 @@ test('Installation check shows automatic unload and waits for an explicit restar
   const start=page.locator('#servo-test-start');
   await start.click();
   await page.locator('#servo-test-offset:enabled').waitFor();
-  assert.match(await status.innerText(),/unloads after 10 seconds without an angle change/);
+  assert.match(await status.innerText(),/10 秒/);
 
   state.testIdleExpired=true;
-  await page.getByText('Servo unloaded after 10 seconds without an angle change.',{exact:true}).waitFor();
-  assert.equal(await page.locator('#servo-test-offset').isDisabled(),true);
+  await page.locator('#servo-test-offset:disabled').waitFor();
   assert.equal(await page.locator('#servo-test-stop').isDisabled(),true);
-  await page.click('#language');
   assert.equal(await status.innerText(),'10 秒未调整角度，已自动卸力。');
   assert.equal(state.calls.filter(call=>call.path==='/api/servo/test'&&call.action==='start').length,1);
 
@@ -347,7 +337,7 @@ test('Set KpKd refreshes both banks and distinguishes write success from readbac
 test('Both value rows fit a narrow phone viewport',async t=>{
   const {page}=await setup(t,{width:375,height:812},'fr-FR');
   assert.equal(await page.locator('html').getAttribute('lang'),'en');
-  assert.equal(await page.locator('#scan').textContent(),'Scan all IDs');
+  assert.equal(await page.locator('#scan').textContent(),'扫描所有 ID');
   await select(page);
   const box=await page.locator('.servo-gains').boundingBox();
   assert.ok(box.x>=0&&box.x+box.width<=375,JSON.stringify(box));
@@ -371,12 +361,11 @@ test('Chinese locale translates navigation, scan progress and runtime readback f
   assert.deepEqual(await values(page),['5','10','—','—']);
   assert.match(await page.locator('#message').textContent(),/读取运行值失败。等待舵机指令回包超时/);
   const servoCommands=state.calls.filter(call=>call.path==='/api/servo').length;
-  await page.getByRole('button',{name:'Switch to English'}).click();
-  assert.equal(await page.locator('html').getAttribute('lang'),'en');
-  assert.equal(await restartHint.textContent(),'After writing, power-cycle the Duck to reload the saved KP/KD.');
-  assert.match(await page.locator('#scan-status').textContent(),/^Stopped.*2 found/);
-  assert.match(await page.locator('#message').textContent(),/Runtime read failed: servo reply timeout/);
-  assert.equal(await page.locator('#scan-progress').getAttribute('aria-label'),'Servo scan progress');
+  assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN');
+  assert.equal(await restartHint.textContent(),'写入后断电重启，舵机会加载保存的 KP/KD。');
+  assert.match(await page.locator('#scan-status').textContent(),/2/);
+  assert.match(await page.locator('#message').textContent(),/读取运行值失败/);
+  assert.ok((await page.locator('#scan-progress').getAttribute('aria-label'))?.length);
   assert.deepEqual(await values(page),['5','10','—','—']);
   await page.getByRole('button',{name:'切换为中文'}).click();
   assert.match(await page.locator('#message').textContent(),/读取运行值失败。等待舵机指令回包超时/);

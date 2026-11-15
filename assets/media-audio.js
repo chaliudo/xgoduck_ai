@@ -1,26 +1,25 @@
 (() => {
   const $ = id => document.getElementById(id);
   let state = null, busy = false, dirty = false, recordKey = '', ttsKey = '', revision = 0;
-  const englishError = text => /[\u3400-\u9fff]/.test(text || '') ? 'The voice service could not complete this request. Please try again.' : text || '';
-  function notice(text = '') { $('notice').textContent = englishError(text); $('notice').hidden = !text; }
+  function notice(text = '') { $('notice').textContent = text || ''; $('notice').hidden = !text; }
   async function request(path, data = {}) {
     const res = await fetch('/api/media/' + path, {method: 'POST',
       headers: {'Content-Type': 'application/json', 'X-Device-Test': '1'},
       body: JSON.stringify(data), signal: AbortSignal.timeout(15000)});
     const body = await res.json();
-    if (!res.ok) throw Error(body.error || body.detail || 'Request failed.');
+    if (!res.ok) throw Error(body.error || body.detail || '请求失败。');
     return body;
   }
   function render(s) {
     state = s;
     const a = s.audio, idle = a.state === 'idle', ready = a.available && !busy;
-    $('connection').textContent = 'Connected to ' + location.hostname;
-    $('audioBadge').textContent = ({playing: 'Playing', recording: 'Recording', synthesizing: 'Generating voice', cancelling: 'Stopping'})[a.state] || (a.available ? 'Connected' : 'Not found');
-    $('recBadge').textContent = a.state === 'recording' ? 'Recording' : a.available ? 'Connected' : 'Not found';
+    $('connection').textContent = '已连接 ' + location.hostname;
+    $('audioBadge').textContent = ({playing: '播放中', recording: '录音中', synthesizing: '正在合成语音', cancelling: '正在停止'})[a.state] || (a.available ? '已连接' : '未找到');
+    $('recBadge').textContent = a.state === 'recording' ? '录音中' : a.available ? '已连接' : '未找到';
     if (!dirty) {
       if (a.volume != null) $('volume').value = a.volume;
       $('volumeValue').textContent = a.volume == null ? '—' : a.volume + '%';
-      $('volumeStatus').textContent = a.volume_error || (a.available ? 'Applied to USB speaker' : 'USB audio device not found');
+      $('volumeStatus').textContent = a.volume_error || (a.available ? '已应用到 USB 扬声器' : '未找到 USB 音频设备');
     }
     $('volume').disabled = !ready;
     $('applyVolume').disabled = !ready || !dirty;
@@ -30,24 +29,24 @@
     $('recordStop').disabled = busy || a.state !== 'recording';
     $('seconds').disabled = busy || !idle;
     $('replay').disabled = !ready || !idle || !a.recording;
-    $('audioError').textContent = englishError(a.error);
-    $('recProgress').textContent = a.state === 'recording' ? a.elapsed.toFixed(1) + ' s' : '';
+    $('audioError').textContent = a.error || '';
+    $('recProgress').textContent = a.state === 'recording' ? a.elapsed.toFixed(1) + ' 秒' : '';
     $('recording').hidden = !a.recording;
     if (!a.recording) recordKey = '';
     if (a.recording) {
       const r = a.recording, key = JSON.stringify(r);
-      $('recordStats').textContent = `${r.duration} s · ${r.rate / 1000} kHz · ${r.dbfs} dBFS · ${r.clipped ? 'Clipping detected' : r.rms < .0001 ? 'Very low signal' : 'No clipping'}`;
+      $('recordStats').textContent = `${r.duration} 秒 · ${r.rate / 1000} kHz · ${r.dbfs} dBFS · ${r.clipped ? '检测到削波' : r.rms < .0001 ? '信号过弱' : '无削波'}`;
       $('level').style.width = Math.min(100, Math.max(0, (r.dbfs + 60) / 60 * 100)) + '%';
       if (key !== recordKey) { recordKey = key; $('player').src = '/api/media/recording?t=' + Date.now(); }
     }
     const t = s.tts || {};
-    $('ttsBadge').textContent = t.configured ? 'Voice configured' : 'Voice not configured';
+    $('ttsBadge').textContent = t.configured ? '语音已配置' : '语音未配置';
     $('ttsSpeak').disabled = !ready || !idle || !t.configured || !$('ttsText').value.trim();
     $('ttsReplay').disabled = !ready || !idle || !t.audio;
     $('ttsStop').disabled = busy || idle;
     $('ttsText').disabled = !!t.busy;
-    $('ttsError').textContent = englishError(t.error);
-    $('ttsProgress').textContent = t.busy ? `Generating voice · ${a.elapsed.toFixed(1)} s` : t.audio ? `Generated audio · ${t.audio.duration} s` : '';
+    $('ttsError').textContent = t.error || '';
+    $('ttsProgress').textContent = t.busy ? `正在合成语音 · ${a.elapsed.toFixed(1)} 秒` : t.audio ? `已生成音频 · ${t.audio.duration} 秒` : '';
     $('ttsResult').hidden = !t.audio;
     if (t.audio && String(t.audio.version) !== ttsKey) { ttsKey = String(t.audio.version); $('ttsPlayer').src = '/api/media/tts/audio?t=' + ttsKey; }
     if (!t.audio) ttsKey = '';
@@ -61,7 +60,7 @@
     } catch (e) { notice(e.message); }
     finally { busy = false; if (state) render(state); }
   }
-  $('volume').oninput = () => { dirty = true; $('volumeValue').textContent = $('volume').value + '%'; $('volumeStatus').textContent = 'Not applied'; if (state) render(state); };
+  $('volume').oninput = () => { dirty = true; $('volumeValue').textContent = $('volume').value + '%'; $('volumeStatus').textContent = '未应用'; if (state) render(state); };
   $('applyVolume').onclick = async () => {
     if (busy) return;
     busy = true; revision++; if (state) render(state); notice();
@@ -86,7 +85,7 @@
       if (!busy && version === revision) render(s);
     } catch (e) {
       if (version !== revision) return;
-      $('connection').textContent = 'Disconnected. Retrying…';
+      $('connection').textContent = '连接已断开，正在重试…';
       document.querySelectorAll('button, input, select').forEach(el => el.disabled = true);
     } finally { setTimeout(poll, 1000); }
   }

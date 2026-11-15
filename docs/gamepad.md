@@ -1,6 +1,6 @@
 # Bluetooth gamepad control
 
-Open `http://<duck-host>:9527/gamepad.html`. All navigation and setup text is English.
+Open `http://<duck-host>:9527/gamepad.html`. The page is Chinese, like the rest of the panel.
 
 1. Put an Xbox Bluetooth controller or Switch Pro controller into pairing mode.
 2. Select **Scan for controllers**. The scan stops after 30 seconds.
