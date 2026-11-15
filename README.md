@@ -229,3 +229,7 @@ After the voice service sound, say the wake word shown under **Link AI → Autom
 3. Open **Servo setup** and click **Scan all IDs**. Select each servo, set **KP to 5** and **KD to 10**, then click **Set KpKd** and **Read** to verify the saved and runtime values. Power-cycling reloads the saved values.
 
 Based on Pollen Robotics' [Microduck](https://github.com/pollen-robotics/microduck). [Hardware](https://github.com/LuwuDynamics/xgoduck_hardware) · [Training](https://github.com/LuwuDynamics/xgoduck_rl)
+
+## License
+
+Apache License 2.0; see [LICENSE](LICENSE). This repository is a modified copy of the upstream XGO Duck AI project and is built on Pollen Robotics' Microduck. Upstream attribution, pinned revisions and the licenses of bundled third-party components are in [NOTICE](NOTICE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [LICENSES/](LICENSES/).

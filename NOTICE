@@ -1,0 +1,32 @@
+XGO Duck AI
+===========
+
+Copyright the XGO Duck AI contributors.
+Modifications in this repository: Copyright 2026 chaliudo.
+
+This repository is a modified copy of the XGO Duck AI App published by
+LuwuDynamics:
+
+    https://github.com/LuwuDynamics/xgoduck_runtime_arduino
+    branch ai-chat-audio-video-tof
+    motion baseline commit 4ce3315c86190a632f4d75a2464a4ed31c9af69a
+
+The App is built on Pollen Robotics' Microduck
+(https://github.com/pollen-robotics/microduck), distributed under the
+Apache License, Version 2.0.
+
+Modifications in this repository
+--------------------------------
+See THIRD_PARTY_NOTICES.md for the per-file list and for every third-party
+component, its pinned revision and its license. In short:
+
+  - gamepad worker accepts the Bluetooth standard-gamepad stick layout
+    (ABS_Z/RZ) in addition to XInput, and the device-list unpacking that
+    terminated the input thread is fixed.
+  - gamepad control can be enabled automatically on App start through
+    data/gamepad-settings.json.
+  - tools/monitor-motion.py samples port 9527 and reports gait stability.
+  - docs describe the AI-branch service name, startup enable and monitoring.
+  - LICENSE, NOTICE, THIRD_PARTY_NOTICES.md and LICENSES/ were added.
+
+Licensed under the Apache License, Version 2.0. See LICENSE.

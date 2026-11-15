@@ -224,3 +224,7 @@ App 安装并启动成功后，提醒我回到本 README，按顺序完成第 5 
 3. 打开 **舵机设置**，点 **扫描所有 ID**。逐个选中舵机，将 **KP 设为 5、KD 设为 10**，点 **写入 KP/KD（Set KpKd）**，再点 **读取** 核对保存值和运行值。断电重启后，舵机会加载保存值。
 
 本项目基于 Pollen Robotics 的 [Microduck](https://github.com/pollen-robotics/microduck)。[硬件](https://github.com/LuwuDynamics/xgoduck_hardware) · [训练代码](https://github.com/LuwuDynamics/xgoduck_rl)
+
+## 许可
+
+Apache License 2.0，见 [LICENSE](LICENSE)。本仓库是上游 XGO Duck AI 工程的修改副本，并基于 Pollen Robotics 的 Microduck。上游署名、固定修订号和各第三方组件的许可见 [NOTICE](NOTICE)、[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与 [LICENSES/](LICENSES/)。
