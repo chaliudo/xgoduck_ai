@@ -229,6 +229,19 @@ class GamepadTest(unittest.TestCase):
         self.c.roller_mode = False
         self.assertFalse(self.g.status()['roller'])
 
+    def test_kick_is_refused_in_skating_mode(self):
+        source = ast.parse((ROOT/'python/controller.py').read_text(encoding='utf-8'))
+        cls = next(n for n in source.body if isinstance(n, ast.ClassDef) and n.name == 'Controller')
+        fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == 'start_kick')
+        ns = dict(time=time)
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), 'controller.py', 'exec'), ns)
+        skating = Mock(roller_mode=True, kick_policies={'left': None, 'right': None}, lock=threading.RLock())
+        with self.assertRaisesRegex(ValueError, 'skating'):
+            ns['start_kick'](skating, 'left')
+        walking = Mock(roller_mode=False, kick_policies={'left': None}, lock=threading.RLock())
+        with self.assertRaisesRegex(ValueError, 'shadow/policy'):
+            ns['start_kick'](walking, 'left')
+
     def test_learning_waits_for_release_and_rejects_duplicate(self):
         self.data['buttons']['east'] = True
         self.learn()

@@ -69,10 +69,12 @@
     for (const button of actions) {
       const kind = button.dataset.motion;
       const headAction = kind.startsWith('head_');
+      const kickAction = kind === 'left_kick' || kind === 'right_kick';
       button.disabled = kind === 'stop' ? !robot || state.exclusive
         : kind === 'stand' || kind === 'default_pose' ? !state.usable || !!state.active || !!pending || robot?.arming === true
-        : !state.ready || !!pending || roller && headAction;
+        : !state.ready || !!pending || roller && (headAction || kickAction);
       if (headAction) button.title = roller ? t('poseRoller') : '';
+      if (kickAction) button.title = roller ? t('kickRoller') : '';
       button.toggleAttribute('data-active', kind === state.active || kind === 'sit' && state.seated);
     }
     const feedback = robot?.battery?.low || state.exclusive ? null : notice;

@@ -72,6 +72,7 @@ const serverMessages=new Map([
   ['pick requires shadow/policy mode','请先切换到仅推理或行走模式，再叼东西。'],
   ['roulade requires shadow/policy mode','请先切换到仅推理或行走模式，再翻滚。'],
   ['kick only while walking upright with no other action','踢球需要小鸭在行走模式下站稳，且没有其他动作。'],
+  ['kick is unavailable in skating mode','滑行模式下不能踢球，请先切换回普通行走模式。'],
   ['pick only while walking upright','叼东西需要小鸭在行走模式下站稳。'],
   ['roulade only while walking','翻滚需要小鸭处于行走模式。'],
   ['wait for roulade to finish','请等待翻滚结束。'],
@@ -449,7 +450,7 @@ $('roller-mode').disabled=rollerBusy||sitActive||kickRunning||actionPreparing;
 const upright=(s.mode==='shadow'||s.mode==='policy')&&recovery&&recovery.active&&recovery.phase==='walk';
 $('pick').disabled=actionPreparing||sitActive||kickRunning||!upright||(pick&&pick.active)||(roulade&&roulade.active);
 $('roulade').disabled=$('pick').disabled;
-for(const side of ['left','right'])$(side+'_kick').disabled=kickBusy||!s[side+'_kick']||!s.control_ready||$('pick').disabled;
+for(const side of ['left','right'])$(side+'_kick').disabled=kickBusy||!s[side+'_kick']||!s.control_ready||$('pick').disabled||rollerEnabled;
 if(recovery){
   const phaseLabel=()=>{
     const preparingLabel=t(...(actionLabels[s.action_preparation?.action]||['action','动作']));

@@ -802,6 +802,9 @@ class Controller:
             raise ValueError('kick side must be left or right')
         with self.lock:
             self._require_motion_available()
+            # The roller model has no kicking gait; refuse before any queueing.
+            if self.roller_mode:
+                raise ValueError('kick is unavailable in skating mode')
             self._check_imu_idle_locked()
             now = time.monotonic()
             if self.mode not in ('shadow', 'policy'):
