@@ -26,7 +26,7 @@ SITSTAND_STAND_S = 1.0
 KICK_S = 0.4
 CONTROL_PERIOD = 1.0 / 50.0
 # A step velocity command jolts the gait; ramp toward it at these rates instead.
-TWIST_SLEW_LINEAR = 0.9    # m/s^2
+TWIST_SLEW_LINEAR = 0.35   # m/s^2, gentle enough for the skating start
 TWIST_SLEW_ANGULAR = 1.8   # rad/s^2
 LOW_BATTERY_MV = 6000
 BATTERY_REARM_MV = 7600

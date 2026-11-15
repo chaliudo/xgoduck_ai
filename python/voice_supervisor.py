@@ -28,6 +28,24 @@ class VoiceSupervisor:
         except ProcessLookupError:
             pass
 
+    @staticmethod
+    def _voice_limits():
+        """Keep wake-word and ASR off the cores the 50 Hz control loop needs.
+
+        The voice child idles near one full core. Sharing every core with it
+        pushed single-threaded policy inference past its 20 ms period, which
+        shows up as missed control cycles and a falling gait.
+        """
+        try:
+            os.nice(10)
+        except OSError:
+            pass
+        if (os.cpu_count() or 1) >= 4:
+            try:
+                os.sched_setaffinity(0, {2, 3})
+            except (AttributeError, OSError):
+                pass
+
     def _spawn(self):
         env = dict(os.environ, DUCK_IPC_TOKEN=self.token, DUCK_MOTION_PORT=str(self.motion_port),
                    DUCK_VOICE_PORT=str(self.voice_port), PYTHONUNBUFFERED='1',
@@ -40,7 +58,8 @@ class VoiceSupervisor:
         env['LD_LIBRARY_PATH'] = str(native / 'lib') + os.pathsep + env.get('LD_LIBRARY_PATH', '')
         env['DUCK_NATIVE_LIB_DIR'] = str(native / 'lib')
         process = subprocess.Popen([sys.executable, '-u', str(Path(__file__).with_name('voice_process.py'))],
-                                   env=env, start_new_session=True)
+                                   env=env, start_new_session=True,
+                                   preexec_fn=self._voice_limits if os.name == 'posix' else None)
         with self.lock:
             self.process = process
         print('[supervisor] voice PID', process.pid, flush=True)

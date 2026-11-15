@@ -32,6 +32,13 @@ from forward_avoidance import ForwardAvoidance
 
 # Bound GIL handoff latency between the 100 Hz receiver, policy and WebUI.
 sys.setswitchinterval(0.001)
+# The voice child is pinned to the other CPUs (see VoiceSupervisor); keep this
+# process, which owns the 50 Hz loop, off the cores its wake-word model fills.
+if (os.cpu_count() or 1) >= 4:
+    try:
+        os.sched_setaffinity(0, {0, 1})
+    except (AttributeError, OSError):
+        pass
 controller = Controller(Bridge)
 voice_config = VoiceConfig()
 access = MotionAccess(controller, remote_allowed=lambda: voice_config.get()['remote_motion_enabled'])
