@@ -1,6 +1,6 @@
 (() => {
   const $=id=>document.getElementById(id), t=window.DuckI18n.t;
-  let media=null,robot=null,gamepad=null,streaming=false,cameraBusy=false,lightBusy=false,mediaBusy=false,usbBusy=false;
+  let media=null,robot=null,gamepad=null,streaming=false,cameraBusy=false,lightBusy=false,mediaBusy=false,usbBusy=false,skatingBusy=false;
   let volumeDirty=false,volumeSaving=false,pendingVolume=null;
   let live=null,wake=null,noticeTimer=null,audioContext=null,mediaRevision=0,usbRevision=0,activePanel='quick',speakerTesting=false;
   let audioState='listenIdle',audioValues={};
@@ -94,6 +94,17 @@
       button.title=usbStatus+' '+t('usbNotice');
     }
     $('usbStatus').textContent=usbStatus;
+    const skatingButton=$('skatingToggle');
+    if(skatingButton){
+      const roller=robot?.roller?.enabled===true;
+      const blocked=!robot||robot.control_ready!==true||robot.sitstand?.active===true
+        ||robot.left_kick?.active===true||robot.right_kick?.active===true
+        ||robot.roulade?.active===true||robot.pick?.active===true
+        ||robot.action_preparation?.active===true;
+      skatingButton.disabled=skatingBusy||blocked;
+      skatingButton.setAttribute('aria-checked',String(roller));
+      skatingButton.textContent=skatingBusy?t('skatingSwitching'):t(roller?'skatingOn':'skatingOff');
+    }
     $('frameHint').textContent=activePanel==='quick'?'':t(activePanel==='gamepad'?'gamepadHint':activePanel==='servo'?'servoHint':'calibrationHint');
     const want=cam?.running&&!document.hidden;
     if(want&&!streaming){streaming=true;$('feed').src='/api/media/camera/stream?t='+Date.now();}
@@ -145,6 +156,18 @@
     catch(error){notify(message(error));}finally{usbBusy=false;render();}
   }
   usbButtons.forEach(button=>button.onclick=switchUsb);
+  // Same shared state as the port 9527 Control page; the backend arbitrates.
+  async function switchSkating(){
+    if(skatingBusy||!robot)return;
+    const target=robot?.roller?.enabled!==true;
+    skatingBusy=true;render();
+    try{
+      await api('roller',{enabled:target});
+      robot={...robot,roller:{...(robot.roller||{}),enabled:target}};
+    }catch(error){notify(message(error));}
+    finally{skatingBusy=false;render();}
+  }
+  $('skatingToggle')?.addEventListener('click',switchSkating);
   volumeButton?.addEventListener('click',()=>{
     settings();
     volumeSlider.focus({preventScroll:true});volumeSlider.scrollIntoView({block:'center'});

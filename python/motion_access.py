@@ -16,6 +16,19 @@ VOICE_TWIST_LIMITS = (.4, .3, 1.)  # Absolute ceiling; ordinary walking has tigh
 WALK_VX_LIMITS = (-.18, .2)
 REMOTE_TWIST_LIMITS = (.15, .1, 1.)
 COCKPIT_TWIST_LIMITS = (.15, .3, 1.)
+ROLLER_YAW_LIMIT = .25
+
+
+def roller_twist(twist):
+    """Clamp a requested twist to what the roller model accepts.
+
+    Roller cannot strafe and turns more slowly, so voice and the phone remote
+    turn at the limit instead of failing the whole request.
+    """
+    if twist[1]:
+        raise ValueError('Roller 模式不支持侧移，请用 Turn 转向。')
+    return [twist[0], 0.0, max(-ROLLER_YAW_LIMIT, min(ROLLER_YAW_LIMIT, twist[2]))]
+
 COCKPIT_LEASE_S = .4
 COCKPIT_ACTIONS = ('stand', 'sit', 'pick', 'roulade', 'left_kick', 'right_kick')
 COCKPIT_POSES = {
@@ -488,14 +501,9 @@ class MotionAccess:
                 if (key == 'twist' and getattr(self.controller, 'roller_mode', False) is not True
                         and not WALK_VX_LIMITS[0] <= v[0] <= WALK_VX_LIMITS[1]):
                     raise ValueError('walking vx must be between -0.18 and 0.2')
-                payload[key] = v
                 if key == 'twist' and getattr(self.controller, 'roller_mode', False) is True:
-                    if v[1]:
-                        raise ValueError('Roller 模式不支持侧移，请用 Turn 转向。')
-                    if remote:
-                        v[2] = max(-.25, min(.25, v[2]))
-                    elif abs(v[2]) > .25:
-                        raise ValueError('Roller 模式转向范围为 ±0.25 rad/s。')
+                    v = roller_twist(v)
+                payload[key] = v
             elif kind == 'mouth':
                 mouth = values.get('mouth')
                 if isinstance(mouth, bool) or not isinstance(mouth, (int, float)) or not 0 <= mouth <= 30:

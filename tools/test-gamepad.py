@@ -242,6 +242,20 @@ class GamepadTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'shadow/policy'):
             ns['start_kick'](walking, 'left')
 
+    def test_voice_turn_clamps_to_the_roller_limit(self):
+        source = ast.parse((ROOT/'python/motion_access.py').read_text(encoding='utf-8'))
+        nodes = [n for n in source.body if isinstance(n, ast.FunctionDef) and n.name == 'roller_twist']
+        nodes += [n for n in source.body if isinstance(n, ast.Assign)
+                  and any(getattr(t, 'id', '') == 'ROLLER_YAW_LIMIT' for t in n.targets)]
+        ns = {}
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), 'motion_access.py', 'exec'), ns)
+        clamp = ns['roller_twist']
+        self.assertEqual(clamp([0.1, 0, 1.0]), [0.1, 0.0, 0.25])
+        self.assertEqual(clamp([0.1, 0, -1.0]), [0.1, 0.0, -0.25])
+        self.assertEqual(clamp([-0.15, 0, 0.1]), [-0.15, 0.0, 0.1])
+        with self.assertRaisesRegex(ValueError, '侧移'):
+            clamp([0, 0.1, 0])
+
     def test_learning_waits_for_release_and_rejects_duplicate(self):
         self.data['buttons']['east'] = True
         self.learn()

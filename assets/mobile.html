@@ -196,6 +196,12 @@
   <div id="quickPanel" class="quick-panel">
     <section class="usb-settings"><h3 data-i18n="usbConnection">USB 连接</h3><p data-i18n="usbDescription">使用 USB 摄像头、音频设备或有线手柄时，请开启 Host 模式。</p><button id="usbHost" type="button" role="switch" aria-label="USB Host" aria-checked="false" disabled>USB Host</button><p id="usbStatus" role="status"></p><p data-i18n="usbNotice">请用 Wi-Fi 连接并在小鸭停止运动后切换。切换会中断当前 USB 连接。</p></section>
     <section>
+      <h3 data-i18n="skatingMode">滑行模式</h3>
+      <p data-i18n="skatingDescription">与 9527 控制台是同一个开关。开启后前进、后退和转向都使用滚轮模型，不能侧移，也不能踢球。</p>
+      <button id="skatingToggle" type="button" role="switch" aria-checked="false" data-i18n-aria-label="skatingMode" disabled>滑行模式：关闭</button>
+      <p id="skatingStatus" class="muted" role="status" data-i18n="skatingNotice">坐下、踢球或正在执行的动作结束后才能切换。</p>
+    </section>
+    <section>
       <h3 data-i18n="speaker">扬声器</h3>
       <div class="setting-row"><label for="volume" data-i18n="duckVolume">小鸭音量</label><output id="volumeLabel" for="volume">—</output></div>
       <input id="volume" type="range" min="0" max="100" value="100" disabled>

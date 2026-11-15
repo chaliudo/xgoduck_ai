@@ -53,7 +53,7 @@ class DuckThing(Thing):
                          p('speed', 'm/s：省略默认0.1，所有方向0–0.15，快走也不可超过', required=False),
                          p('seconds', '0.1–10秒，不含排队')],
                         lambda a: self.move(a['direction'].get_value(), a['speed'].get_value(), a['seconds'].get_value()))
-        self.add_method('Turn', '转向后归零，可排队；普通左转+1、右转-1 rad/s，默认2–3秒；Roller限±0.25。查GetStatus，不代表测得角度',
+        self.add_method('Turn', '转向后归零，可排队；普通左转+1、右转-1 rad/s，默认2–3秒；Roller限±0.25，超出按±0.25执行。查GetStatus，不代表测得角度',
                         [p('yaw_rate', '-1–1 rad/s；默认左转 +1、右转 -1，正值左转'), p('seconds', '0.1–10 秒，排队等待不计入')],
                         lambda a: self.action(kind='turn', twist=[0, 0, a['yaw_rate'].get_value()], duration=a['seconds'].get_value()))
         self.add_method('SetHead', '站立或保持坐姿时可转头，弧度；左右扭头用head3；省略轴保持原值，不会自动回中，勿同时设四轴极值',
