@@ -1,0 +1,19 @@
+# ignore app cache folder
+.cache/
+.build/
+__pycache__/
+*.pyc
+*.log
+*.bak
+.venv/
+data/*
+!data/.gitkeep
+dist/
+tools/offline/
+uv.toml
+.uv.toml.before-xgoduck
+.idea/
+.DS_Store
+
+# local scratch: ssh askpass, probes, motion captures
+.tmp/
