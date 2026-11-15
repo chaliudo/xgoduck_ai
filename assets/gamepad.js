@@ -1,5 +1,8 @@
 (() => {
   const $ = id => document.getElementById(id);
+  // Tolerate a cached HTML document that predates an element: the script tag is
+  // versioned, the page is not, so a new script can run against old markup.
+  const setText = (id, text) => { const el = $(id); if (el) el.textContent = text; };
   let busy = false, state = null, devicesKey = '', inputsKey = '', revision = 0, bindingsKey = '', actionError = '';
   const labels = {south:'A / bottom', east:'B / right', west:'X / left', north:'Y / top', lb:'LB / L', rb:'RB / R', back:'View / −', start:'Menu / +', guide:'Home', ls:'Left stick click', rs:'Right stick click', lt:'LT / L2', rt:'RT / R2', f1:'F1', f3:'F3', up:'D-pad up', down:'D-pad down', left:'D-pad left', right:'D-pad right'};
   const actions = {walk:'Walk / get up', hold:'Default pose', off:'Torque off', pick:'Pick', roulade:'Roulade', roller:'Skating mode'};
@@ -69,8 +72,8 @@
     $('enable').disabled=working || c.enabled || !!c.learning || !input.connected;
     $('disable').disabled=busy || !c.enabled;
     $('inputStatus').textContent=input.connected?input.name+' · Input ready'+(input.kind==='unitree_ble' ? ` · Battery ${input.battery}%` : ''):input.devices?.length?'Select a controller below to enable gamepad control.':b.devices?.some(d=>d.connected)?'Bluetooth connected; waiting for a supported gamepad input device.':'Waiting for a gamepad input device.';
-    $('skatingStatus').textContent=c.roller?'Skating mode: On (roller model, no strafe).':'Skating mode: Off (walk model).';
-    $('strafeCell').textContent=c.roller?'Ignored in skating mode':'Strafe left / right';
+    setText('skatingStatus', c.roller?'Skating mode: On (roller model, no strafe).':'Skating mode: Off (walk model).');
+    setText('strafeCell', c.roller?'Ignored in skating mode':'Strafe left / right');
     const a=input.axes || {lx:0,ly:0,rx:0,ry:0};
     $('leftStick').style.transform=`translate(${a.lx*38}px,${a.ly*38}px)`;
     $('rightStick').style.transform=`translate(${a.rx*38}px,${a.ry*38}px)`;
