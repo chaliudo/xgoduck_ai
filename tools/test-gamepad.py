@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT/'python'), str(ROOT/'tools/gamepad')]
 from input_reader import normalize, is_gamepad, right_stick_codes, device_entries
 # Avoid FastAPI/httpx dependencies for local tests; exercise actual control code.
-source = ast.parse((ROOT/'python/gamepad.py').read_text())
+source = ast.parse((ROOT/'python/gamepad.py').read_text(encoding='utf-8'))
 nodes = [n for n in source.body if isinstance(n, (ast.FunctionDef, ast.ClassDef)) and n.name in ('motion_from_input','GamepadControl')]
 nodes += [n for n in source.body if isinstance(n, ast.Assign)]
 ns = dict(time=time, threading=threading, json=json, Path=Path)
@@ -44,7 +44,7 @@ class GamepadTest(unittest.TestCase):
             axes=dict(lx=0, ly=-1, rx=.5, ry=0), buttons=dict(lb=False))
 
     def test_web_cannot_overwrite_gamepad_commands(self):
-        source = ast.parse((ROOT/'python/controller.py').read_text())
+        source = ast.parse((ROOT/'python/controller.py').read_text(encoding='utf-8'))
         cls = next(n for n in source.body if isinstance(n, ast.ClassDef) and n.name == 'Controller')
         fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == 'command')
         import math
@@ -180,6 +180,54 @@ class GamepadTest(unittest.TestCase):
         with unittest.mock.patch.object(threading.Thread, 'start'):
             loaded = GamepadControl(self.c, Mock(), self.g.bindings_path)
         self.assertEqual(loaded.bindings['pick'], 'west')
+
+    def test_binding_file_without_skating_mode_still_loads(self):
+        legacy = {key: value for key, value in ns['DEFAULT_BINDINGS'].items() if key != 'roller'}
+        legacy['pick'] = 'west'
+        self.g.bindings_path.write_text(json.dumps(legacy))
+        with unittest.mock.patch.object(threading.Thread, 'start'):
+            loaded = GamepadControl(self.c, Mock(), self.g.bindings_path)
+        self.assertEqual(loaded.bindings['pick'], 'west')
+        self.assertIsNone(loaded.bindings['roller'])
+        self.assertEqual(loaded.binding_message, '')
+
+    def test_skating_binding_toggles_the_page_state(self):
+        self.g.bindings['roller'] = 'north'
+        self.g.access = Mock()
+        self.c.roller_mode = False
+        self.data['buttons'] = {'north': True}
+        self.g.consume(self.data)
+        self.g.access.web_roller.assert_called_once_with(True)
+        self.g.access.web_roller.reset_mock()
+        self.c.roller_mode = True
+        self.data['buttons'] = {'north': False}
+        self.g.consume(self.data)
+        self.data['buttons'] = {'north': True}
+        self.g.consume(self.data)
+        self.g.access.web_roller.assert_called_once_with(False)
+
+    def test_skating_binding_falls_back_to_the_controller(self):
+        self.g.bindings['roller'] = 'north'
+        self.g.access = None
+        self.c.roller_mode = False
+        self.data['buttons'] = {'north': True}
+        self.g.consume(self.data)
+        self.c.set_roller_mode.assert_called_once_with(True)
+
+    def test_skating_guard_error_surfaces_without_dropping_control(self):
+        self.g.bindings['roller'] = 'north'
+        self.g.access = Mock()
+        self.g.access.web_roller.side_effect = ValueError('wait for kick to finish before switching roller mode')
+        self.data['buttons'] = {'north': True}
+        self.g.consume(self.data)
+        self.assertIn('wait for kick', self.g.error)
+        self.assertTrue(self.g.enabled)
+
+    def test_status_reports_skating_mode(self):
+        self.c.input_source, self.c.roller_mode = 'gamepad', True
+        self.assertTrue(self.g.status()['roller'])
+        self.c.roller_mode = False
+        self.assertFalse(self.g.status()['roller'])
 
     def test_learning_waits_for_release_and_rejects_duplicate(self):
         self.data['buttons']['east'] = True

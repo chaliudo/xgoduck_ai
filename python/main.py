@@ -76,7 +76,7 @@ def play_battery_warning():
 controller.battery_warning = play_battery_warning
 ui = WebUI(port=9527, cors_origins='')
 register_media(ui)
-gamepad_control = register_gamepad(ui, controller)
+gamepad_control = register_gamepad(ui, controller, access)
 access.gamepad = gamepad_control
 tof = ToFMonitor(retry=1.)
 avoidance = ForwardAvoidance(tof, settings_path=DATA / 'obstacle-avoidance.json')

@@ -11,7 +11,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 
-DEFAULT_BINDINGS = dict(walk='start', hold='south', off='east', pick=None, roulade=None)
+DEFAULT_BINDINGS = dict(walk='start', hold='south', off='east', pick=None, roulade=None, roller=None)
 BUTTON_NAMES = ('south', 'east', 'north', 'west', 'lb', 'rb', 'back', 'start', 'guide', 'ls', 'rs',
                 'lt', 'rt', 'f1', 'f3', 'up', 'down', 'left', 'right')
 
@@ -24,8 +24,9 @@ def motion_from_input(data, roller=False):
 
 
 class GamepadControl:
-    def __init__(self, controller, client, bindings_path=None):
+    def __init__(self, controller, client, bindings_path=None, access=None):
         self.controller, self.client = controller, client
+        self.access = access
         self.enabled = False
         self.wait_for_neutral = False
         self.identity = None
@@ -41,8 +42,13 @@ class GamepadControl:
         self.binding_message = ''
         try:
             saved = json.loads(self.bindings_path.read_text())
-            self.validate_bindings(saved)
-            self.bindings = saved
+            # Fill actions added after this file was written; ignore unknown keys
+            # so an older file keeps working instead of resetting every binding.
+            merged = dict(DEFAULT_BINDINGS)
+            if isinstance(saved, dict):
+                merged.update({key: value for key, value in saved.items() if key in DEFAULT_BINDINGS})
+            self.validate_bindings(merged)
+            self.bindings = merged
         except FileNotFoundError:
             pass
         except (OSError, ValueError, TypeError):
@@ -63,7 +69,8 @@ class GamepadControl:
         with self.controller.lock:
             return dict(enabled=self.enabled, error=self.error, source=self.controller.input_source,
                         bindings=dict(self.bindings), learning=self.learning['action'] if self.learning else None,
-                        auto_enable=self.auto_enable, binding_message=self.binding_message)
+                        roller=bool(self.controller.roller_mode), auto_enable=self.auto_enable,
+                        binding_message=self.binding_message)
 
     @staticmethod
     def validate_bindings(bindings):
@@ -194,6 +201,17 @@ class GamepadControl:
             self.identity, self.buttons = data['id'], dict(data['buttons'])
             self.enabled, self.error = True, ''
 
+    def toggle_roller(self):
+        """Flip Skating mode; the web switch and this binding share one state.
+
+        Uses the page's own entry point so queued voice/phone actions are retired
+        and the cockpit lease is released exactly as a web toggle would.
+        """
+        target = not bool(self.controller.roller_mode)
+        if self.access is not None:
+            return self.access.web_roller(target)
+        return self.controller.set_roller_mode(target)
+
     def try_auto_enable(self):
         """Enable once per app start, as soon as a ready and centred controller appears."""
         if not self.auto_enable or self.auto_done or self.enabled or self.learning:
@@ -240,6 +258,9 @@ class GamepadControl:
                             self.controller.generation += 1
                             self.controller.input_source = 'gamepad'
                         break
+                    # Same shared state as the Control page's Skating mode switch.
+                    if self.bindings['roller'] in pressed:
+                        self.toggle_roller()
                 twist = motion_from_input(data, roller=self.controller.roller_mode)
                 if self.wait_for_neutral:
                     if any(twist):
@@ -277,11 +298,11 @@ class GamepadControl:
         self.client.close()
 
 
-def register_gamepad(ui, controller):
+def register_gamepad(ui, controller, access=None):
     path = os.environ.get('DUCK_GAMEPAD_SOCKET', str(Path(__file__).resolve().parents[1] / 'data/gamepad.sock'))
     client = httpx.Client(transport=httpx.HTTPTransport(uds=path), base_url='http://gamepad',
                           timeout=httpx.Timeout(.5, connect=.3), trust_env=False)
-    control = GamepadControl(controller, client)
+    control = GamepadControl(controller, client, access=access)
     original = ui.app.router.lifespan_context
 
     @asynccontextmanager
