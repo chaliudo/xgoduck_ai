@@ -113,7 +113,7 @@ let actionPreparing=false;
 let headingBusy=false;
 const motionRanges={
   walk:{forward:.2,backward:.2,strafe:.3,yaw:1,keyboard:[.2,.15,.5]},
-  roller:{forward:.4,backward:.4,strafe:0,yaw:.45,keyboard:[.4,0,.45]}
+  roller:{forward:.25,backward:.25,strafe:0,yaw:.45,keyboard:[.25,0,.45]}
 };
 for(let i=0;i<4;i++){
   $('head-controls').insertAdjacentHTML('beforeend',`<label><span id="head-label-${i}"></span> ${i+1}<input id="head${i}" type="range" min="-1" max="1" value="0" step="0.02"></label>`);

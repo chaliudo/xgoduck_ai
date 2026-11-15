@@ -16,7 +16,7 @@ VOICE_TWIST_LIMITS = (.4, .3, 1.)  # Absolute ceiling; ordinary walking has tigh
 WALK_VX_LIMITS = (-.18, .2)
 REMOTE_TWIST_LIMITS = (.15, .1, 1.)
 COCKPIT_TWIST_LIMITS = (.15, .3, 1.)
-ROLLER_YAW_LIMIT = .25
+ROLLER_YAW_LIMIT = .45
 
 
 def roller_twist(twist):

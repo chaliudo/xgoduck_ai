@@ -25,6 +25,9 @@ ROULADE_START_TIMEOUT_S = 0.5
 SITSTAND_STAND_S = 1.0
 KICK_S = 0.4
 CONTROL_PERIOD = 1.0 / 50.0
+# A step velocity command jolts the gait; ramp toward it at these rates instead.
+TWIST_SLEW_LINEAR = 0.9    # m/s^2
+TWIST_SLEW_ANGULAR = 1.8   # rad/s^2
 LOW_BATTERY_MV = 6000
 BATTERY_REARM_MV = 7600
 BATTERY_SAMPLE_MAX_AGE_S = .4
@@ -35,7 +38,7 @@ LEG_FEEDBACK_MASK = 0x3ff  # The first ten bits of the hardware servo order.
 FEEDBACK_HOLD_REASON = 'STM32 feedback timed out; motion paused, holding last targets'
 ACTION_PREPARE_S = 0.2
 ACTION_PREPARE_TIMEOUT_S = 0.5
-ROLLER_YAW_LIMIT = 0.45  # rad/s, symmetric in Roller mode.
+ROLLER_YAW_LIMIT = 0.6  # rad/s, hard ceiling; commands use 0.45.
 COMMAND_ACC_X_BIAS_MS2 = 1.5  # Temporary IMU trim magnitude; set to 0 to disable.
 VOLTAGE_TIMEOUT_S = 3.0
 
@@ -61,7 +64,10 @@ class Controller:
         for index, motor_id in enumerate(POLICY_IDS):
             if motor_id in ROLLER_LEG_DEFAULT_DEG:
                 self.roller_policy.home_deg[index] = ROLLER_LEG_DEFAULT_DEG[motor_id]
-        self.roller_policy.action_scale = 0.8
+        # The ONNX metadata declares 1.0; the skating gait is weaker on these
+        # servos, so the exported 0.8 is reduced further to keep tracking error
+        # and current spikes inside what the servos can hold.
+        self.roller_policy.action_scale = 0.6
         self.roller_policy.set_action_alphas(leg=0.4, head=0.5)
         self.model_message += '; ' + message
         self.roller_mode = False
@@ -236,6 +242,29 @@ class Controller:
         if now - self.diagnostic_time > BATTERY_SAMPLE_MAX_AGE_S:
             return None
         return self.diagnostics.get('servo_bus_voltage_mv') or None
+
+    @property
+    def twist(self):
+        """Applied command after the slew ramp; the policy reads this each cycle."""
+        return self._twist
+
+    @twist.setter
+    def twist(self, value):
+        # A direct assignment is authoritative: it also clears the ramp target so
+        # a stop cannot be undone by a stale target on the next cycle.
+        self._twist = [float(v) for v in value]
+        self.twist_target = list(self._twist)
+
+    def _ramp_twist_locked(self):
+        """Move the applied command toward its target instead of stepping."""
+        target, current = self.twist_target, self._twist
+        if target == current:
+            return
+        step_linear = TWIST_SLEW_LINEAR * CONTROL_PERIOD
+        step_angular = TWIST_SLEW_ANGULAR * CONTROL_PERIOD
+        for index, step in ((0, step_linear), (1, step_linear), (2, step_angular)):
+            delta = target[index] - current[index]
+            current[index] += max(-step, min(step, delta))
 
     def _require_battery(self):
         if self.battery_phase != 'normal':
@@ -920,7 +949,11 @@ class Controller:
             if t is not None and self.roller_mode and abs(t[2]) > ROLLER_YAW_LIMIT:
                 raise ValueError(f'roller wz must be between {-ROLLER_YAW_LIMIT} and {ROLLER_YAW_LIMIT}')
             if t is not None and not self.pick_active and self.sitstand_phase == 'idle' and not self.kick_until:
-                self.twist = t
+                if any(t):
+                    # Ramp toward the request; a zero request stops immediately.
+                    self.twist_target = [float(v) for v in t]
+                else:
+                    self.twist = [0.0]*3
                 self.heading.command(self._heading_motion_locked(time.monotonic()), t)
             if h is not None and not self.pick_active and not self.kick_until: self.head = h
             if m is not None and not self.pick_active and not self.kick_until: self.mouth = m
@@ -1186,6 +1219,7 @@ class Controller:
             elif self.action_preparation:
                 self._cancel_preparation_locked()
             mode, generation = self.mode, self.generation
+            self._ramp_twist_locked()
             twist, head, mouth = list(self.twist), list(self.head), self.mouth
             rolling = self._roulade_on(now) and self.action_preparation is None
             if rolling and phase != 'walk':
@@ -1330,8 +1364,9 @@ class Controller:
                 missed = int((now-deadline)/CONTROL_PERIOD)+1
                 self.loop_missed += missed; deadline += missed*CONTROL_PERIOD
             else:
-                # Use spare budget to keep inactive ONNX sessions warm.
-                if deadline - now > 0.008:
+                # Warm inactive ONNX sessions only while Duck is not being driven:
+                # in policy/hold that spare budget belongs to the 50 Hz loop.
+                if self.mode not in ('hold', 'policy') and deadline - now > 0.008:
                     try:
                         self._keep_warm_idle()
                     except Exception:

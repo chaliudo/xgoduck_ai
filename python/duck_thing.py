@@ -53,7 +53,7 @@ class DuckThing(Thing):
                          p('speed', 'm/s：省略默认0.1，所有方向0–0.15，快走也不可超过', required=False),
                          p('seconds', '0.1–10秒，不含排队')],
                         lambda a: self.move(a['direction'].get_value(), a['speed'].get_value(), a['seconds'].get_value()))
-        self.add_method('Turn', '转向后归零，可排队；普通左转+1、右转-1 rad/s，默认2–3秒；Roller限±0.25，超出按±0.25执行。查GetStatus，不代表测得角度',
+        self.add_method('Turn', '转向后归零，可排队；普通左转+1、右转-1 rad/s，默认2–3秒；Roller限±0.45，超出按±0.45执行。查GetStatus，不代表测得角度',
                         [p('yaw_rate', '-1–1 rad/s；默认左转 +1、右转 -1，正值左转'), p('seconds', '0.1–10 秒，排队等待不计入')],
                         lambda a: self.action(kind='turn', twist=[0, 0, a['yaw_rate'].get_value()], duration=a['seconds'].get_value()))
         self.add_method('SetHead', '站立或保持坐姿时可转头，弧度；左右扭头用head3；省略轴保持原值，不会自动回中，勿同时设四轴极值',
@@ -70,7 +70,7 @@ class DuckThing(Thing):
                         [], lambda _: self.action(kind='sit'))
         self.add_method('LeftKick', '左脚踢球约0.4秒；若处于坐姿会先起立，站稳后踢，查GetStatus；滚轮模式下不可用，需先SetWalkingMode(walk)', [], lambda _: self.action(kind='left_kick'))
         self.add_method('RightKick', '右脚踢球约0.4秒；若处于坐姿会先起立，站稳后踢，查GetStatus；滚轮模式下不可用，需先SetWalkingMode(walk)', [], lambda _: self.action(kind='right_kick'))
-        self.add_method('SetWalkingMode', '选择walk普通脚或roller滚轮脚；roller需用户确认有滚轮。停移动并清队列，不启动舵机；再用Stand/Forward/Move/Turn。语音线速度≤0.15；Roller转向±0.25，不侧移；坐站/踢腿时不能切换；roller模式下不能踢球',
+        self.add_method('SetWalkingMode', '选择walk普通脚或roller滚轮脚；roller需用户确认有滚轮。停移动并清队列，不启动舵机；再用Stand/Forward/Move/Turn。语音线速度≤0.15；Roller转向±0.45，不侧移；坐站/踢腿时不能切换；roller模式下不能踢球',
                         [p('mode', 'walk 普通脚；roller 滚轮脚', ValueType.STRING)],
                         lambda a: self.action(kind='walking_mode', walking_mode=a['mode'].get_value()))
         self.add_method('GetToF', '读取前方ToF距离和8×8测距阵列，单位mm；报告有效性、帧号和帧龄。'

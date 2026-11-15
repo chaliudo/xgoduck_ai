@@ -112,7 +112,7 @@
     current.busy = true;
     const [move,turn] = sticks, roller = robot?.roller?.enabled === true;
     const target = [deadzone(move.y) * .15, roller ? 0 : -deadzone(move.x) * .3,
-      -deadzone(turn.x) * (roller ? .25 : 1)];
+      -deadzone(turn.x) * (roller ? .45 : 1)];
     current.twist = target.map((value, i) => value === 0 ? 0 : current.twist[i] + .35 * (value - current.twist[i]));
     try {
       const data = await send(current.started ? 'drive' : 'begin', current.twist);

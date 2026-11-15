@@ -56,7 +56,10 @@ class GamepadTest(unittest.TestCase):
         self.assertIn('ignored',result)
         self.assertEqual(self.c.twist,[.2,0,0])
         ns['command'](self.c, twist=[.1,0,0], source='gamepad')
-        self.assertEqual(self.c.twist,[.1,0,0])
+        # The slave loop ramps toward the target; command() must not jump the
+        # applied twist, or a step input would jolt the gait.
+        self.assertEqual(self.c.twist_target,[.1,0,0])
+        self.assertEqual(self.c.twist,[.2,0,0])
 
     def test_deadzone_and_bounded_motion(self):
         self.assertEqual(normalize(0,-32768,32767),0)
@@ -72,10 +75,10 @@ class GamepadTest(unittest.TestCase):
     def test_walking_and_roller_use_the_matching_master_ranges(self):
         self.data['axes'] = dict(lx=1, ly=1, rx=1, ry=0)
         self.assertEqual(motion(self.data), [-.18, -.3, -1.])
-        self.assertEqual(motion(self.data, roller=True), [-.4, 0., -.25])
+        self.assertEqual(motion(self.data, roller=True), [-.25, 0., -.45])
         self.data['axes']['ly'] = -1
         self.assertEqual(motion(self.data)[0], .2)
-        self.assertEqual(motion(self.data, roller=True)[0], .4)
+        self.assertEqual(motion(self.data, roller=True)[0], .25)
 
     def test_keyboard_and_partial_devices_rejected(self):
         self.assertFalse(is_gamepad({1:[30,31],3:[0,1]}))
@@ -250,11 +253,34 @@ class GamepadTest(unittest.TestCase):
         ns = {}
         exec(compile(ast.Module(body=nodes, type_ignores=[]), 'motion_access.py', 'exec'), ns)
         clamp = ns['roller_twist']
-        self.assertEqual(clamp([0.1, 0, 1.0]), [0.1, 0.0, 0.25])
-        self.assertEqual(clamp([0.1, 0, -1.0]), [0.1, 0.0, -0.25])
+        self.assertEqual(clamp([0.1, 0, 1.0]), [0.1, 0.0, 0.45])
+        self.assertEqual(clamp([0.1, 0, -1.0]), [0.1, 0.0, -0.45])
         self.assertEqual(clamp([-0.15, 0, 0.1]), [-0.15, 0.0, 0.1])
         with self.assertRaisesRegex(ValueError, '侧移'):
             clamp([0, 0.1, 0])
+
+    def test_twist_ramps_instead_of_stepping(self):
+        source = ast.parse((ROOT/'python/controller.py').read_text(encoding='utf-8'))
+        wanted = ('CONTROL_PERIOD', 'TWIST_SLEW_LINEAR', 'TWIST_SLEW_ANGULAR')
+        nodes = [n for n in source.body if isinstance(n, ast.Assign)
+                 and any(getattr(t, 'id', '') in wanted for t in n.targets)]
+        cls = next(n for n in source.body if isinstance(n, ast.ClassDef) and n.name == 'Controller')
+        nodes.append(next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '_ramp_twist_locked'))
+        ns = {}
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), 'controller.py', 'exec'), ns)
+
+        class Stub:
+            _twist = [0.0, 0.0, 0.0]
+            twist_target = [0.25, 0.0, 0.15]
+
+        stub = Stub()
+        ns['_ramp_twist_locked'](stub)
+        self.assertGreater(stub._twist[0], 0.0, 'the first cycle must move toward the target')
+        self.assertLess(stub._twist[0], 0.25, 'the first cycle must not jump to the target')
+        for _ in range(200):
+            ns['_ramp_twist_locked'](stub)
+        self.assertAlmostEqual(stub._twist[0], 0.25, places=6)
+        self.assertAlmostEqual(stub._twist[2], 0.15, places=6)
 
     def test_learning_waits_for_release_and_rejects_duplicate(self):
         self.data['buttons']['east'] = True

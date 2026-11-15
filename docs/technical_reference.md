@@ -45,7 +45,7 @@ IDs follow Microduck. The bus always addresses all 15, in this order:
 | 30–33 | Neck and head. Policy order inside the 14-D action is 10–14, 30–33, 20–24. |
 | 34 | Mouth. It is not part of the policy action. The web UI commands it from 0° to 30°. |
 
-The ordinary walking home pose in `python/rl_core.py` is hip/ankle ±22°, knee 0°, hip roll ±5°, neck and head pitch 20°, mouth 0°. Its `action_scale` is 1. Roller reads its own home from ONNX metadata and uses scale 0.7; it is off at startup and selectable using the stable page's Roller switch. Use it only with the corresponding roller-equipped robot. MCU angles use each servo's hardware center at encoder position 2047.
+The ordinary walking home pose in `python/rl_core.py` is hip/ankle ±22°, knee 0°, hip roll ±5°, neck and head pitch 20°, mouth 0°. Its `action_scale` is 1. Roller reads its own home from ONNX metadata and uses scale 0.6; it is off at startup and selectable using the stable page's Roller switch. Use it only with the corresponding roller-equipped robot. MCU angles use each servo's hardware center at encoder position 2047.
 
 Hardware centers are stored in the servos. Legacy `data/zero_pos.json` files are preserved as backups and no longer applied. Nondefault legacy software zeros require the hardware-centering workflow before arming; `data/hardware-centers.json` records acknowledged progress for this robot.
 
@@ -121,7 +121,7 @@ The app boots in **inference only**: the network runs, torque stays off. From th
 
 Closing or backgrounding the page sends zero travel. One second without input clears travel while keeping balance. Voice actions renew input only within their original deadline. After 150 ms without fresh STM32 feedback, Linux pauses new targets and clears travel. The MCU holds the last targets while Bridge and its IMU are healthy. Fresh feedback with torque still enabled restores the current control mode. The MCU disarms if Bridge is unavailable or its IMU sample is older than 500 ms. Linux also disarms on invalid IMU data or total IMU age above 500 ms. App exit, gamepad disconnect and explicit Off unload. Calibration and servo setup have a separate 250 ms MCU host-heartbeat guard and a two-second host UI-heartbeat guard.
 
-The web joystick uses vx -0.18 to +0.2, vy ±0.3 and yaw ±1.0 for ordinary walking; Roller uses vx ±0.4, vy 0 and yaw ±0.25. Head channels are four radians in ±1. Keyboard: W/S, A/D, Q/E, Space.
+The web joystick uses vx -0.18 to +0.2, vy ±0.3 and yaw ±1.0 for ordinary walking; Roller uses vx ±0.25, vy 0 and yaw ±0.45. Head channels are four radians in ±1. Keyboard: W/S, A/D, Q/E, Space.
 
 ## Policies
 

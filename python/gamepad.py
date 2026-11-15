@@ -19,8 +19,10 @@ BUTTON_NAMES = ('south', 'east', 'north', 'west', 'lb', 'rb', 'back', 'start', '
 def motion_from_input(data, roller=False):
     a = data['axes']
     forward = -a['ly']
-    vx = forward * (.4 if roller else .18 if forward < 0 else .2)
-    return [vx, -a['lx'] * (0. if roller else .3), -a['rx'] * (.25 if roller else 1.)]
+    # Skating runs slower than ordinary walking: these servos cannot track the
+    # exported roller gait at its full range without overloading.
+    vx = forward * (.25 if roller else .18 if forward < 0 else .2)
+    return [vx, -a['lx'] * (0. if roller else .3), -a['rx'] * (.45 if roller else 1.)]
 
 
 class GamepadControl:

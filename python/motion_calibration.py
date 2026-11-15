@@ -204,7 +204,8 @@ class AppController(Controller):
     def _stop_forward_locked(self, decision):
         self.forward_avoidance.stopped(self.twist[0], self.input_source, decision)
         self._forward_release.add(self.input_source)
-        self.twist[0] = 0.
+        # Assign through the setter so the slew target drops with it.
+        self.twist = [0.0, self.twist[1], self.twist[2]]
         self.generation += 1  # Drop an obsolete positive action still in ONNX.
 
     def command(self, twist=None, head=None, mouth=None, source='web'):
@@ -219,7 +220,7 @@ class AppController(Controller):
             elif self.mode == 'policy' and self.twist[0] > 0:
                 decision = self.forward_avoidance.preview(self.twist[0])
                 if source in self._forward_release:
-                    self.twist[0] = 0.
+                    self.twist = [0.0, self.twist[1], self.twist[2]]
                     return dict(result, forward_blocked=True,
                                 reason='前进已停止，请先松开方向键/摇杆，再重新发出前进指令。')
                 if not decision['forward_ready']:
